@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Energiekosten Calculator</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; transition: background 0.3s, color 0.3s; }
+    body.dark { background: #121212; color: #eee; }
+    input { padding: 0.5em; margin: 0.5em 0; width: 100%%; max-width: 300px; }
+    button { margin: 0.5em 0.2em; padding: 0.5em 1em; border: none; border-radius: 6px; cursor: pointer; }
+    button.calc { background: #4f46e5; color: white; }
+    button.theme { background: #999; color: white; }
+    button.pdf { background: #e54f46; color: white; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    function toggleTheme(){ document.body.classList.toggle('dark'); }
+    function bereken(){
+      const verbruik = parseFloat(document.getElementById('verbruik').value) || 0;
+      const tarief = parseFloat(document.getElementById('tarief').value) || 0;
+      const dagen = parseFloat(document.getElementById('dagen').value) || 7;
+      const capaciteit = 11 * 5.64 * (dagen/365);
+      const nettarieven = verbruik * 0.07;
+      const heffingen = verbruik * 0.01;
+      const stroom = verbruik * tarief;
+      const subtotaal = stroom + capaciteit + nettarieven + heffingen;
+      const totaal = subtotaal * 1.06;
+      document.getElementById('result').innerHTML = 
+        `<p>Stroom: €${stroom.toFixed(2)}</p>
+         <p>Capaciteitstarief: €${capaciteit.toFixed(2)}</p>
+         <p>Nettarieven: €${nettarieven.toFixed(2)}</p>
+         <p>Heffingen: €${heffingen.toFixed(2)}</p>
+         <p><strong>Totaal (incl. 6%% btw): €${totaal.toFixed(2)}</strong></p>`;
+    }
+    async function exportPDF(){
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Energiekosten Calculator", 10, 10);
+      doc.text(document.getElementById('result').innerText, 10, 20);
+      doc.save("energiekosten.pdf");
+    }
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
+  </script>
+</head>
+<body>
+  <h1>⚡ Energiekosten Calculator</h1>
+  <label>Verbruik (kWh): <input type="number" id="verbruik"></label><br>
+  <label>Prijs per kWh (€): <input type="number" id="tarief" step="0.001"></label><br>
+  <label>Aantal dagen: <input type="number" id="dagen" value="7"></label><br>
+  <button class="calc" onclick="bereken()">Bereken</button>
+  <button class="theme" onclick="toggleTheme()">Thema</button>
+  <button class="pdf" onclick="exportPDF()">PDF</button>
+  <div id="result" style="margin-top:1em;"></div>
+</body>
+</html>
