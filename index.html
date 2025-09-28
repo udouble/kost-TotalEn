@@ -4,27 +4,30 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Energiekosten</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta id="meta-theme" name="theme-color" content="#f6f7fb">
   <style>
-    :root{
+    /* LIGHT THEME (default) */
+    body{
       --bg: #f6f7fb;
       --fg: #0f172a;
       --muted: #6b7280;
       --card: #ffffff;
       --border: #e5e7eb;
       --primary: #3b82f6;
-      --accent: #0ea5e9;
       --danger: #ef4444;
       --shadow: 0 6px 20px rgba(0,0,0,.06);
-      color-scheme: light dark;
+      background: var(--bg); color: var(--fg);
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height:1.45;
     }
-    @media (prefers-color-scheme: dark) {
-      :root{ --bg:#0b1220; --fg:#e5e7eb; --muted:#9aa4b2; --card:#111827; --border:#1f2937; --shadow:none; }
+    /* DARK THEME via class on <body> (reliable on iOS) */
+    body.theme-dark{
+      --bg:#0b1220; --fg:#e5e7eb; --muted:#9aa4b2; --card:#111827; --border:#1f2937; --shadow:none;
     }
-    html.dark { --bg:#0b1220; --fg:#e5e7eb; --muted:#9aa4b2; --card:#111827; --border:#1f2937; --shadow:none; }
     *{ box-sizing:border-box; }
-    body{ margin:0; background:var(--bg); color:var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height:1.45; }
     .wrap{ max-width: 920px; margin: 48px auto; padding: 0 16px; }
     header{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom: 18px; }
     .title{ display:flex; align-items:center; gap:12px; }
@@ -33,17 +36,15 @@
     h1{ margin:0; font-weight:700; font-size: clamp(20px, 3.1vw, 30px); letter-spacing:.2px; }
     .sub{ margin-top:2px; color:var(--muted); font-size:13px; font-weight:500; }
     .toolbar{ display:flex; gap:8px; flex-wrap:wrap; }
-    .btn{ border:1px solid var(--border); background: var(--card); color:var(--fg); padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; box-shadow:var(--shadow); }
+    .btn{ border:1px solid var(--border); background: var(--card); color: var(--fg); padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; box-shadow:var(--shadow); }
     .btn.primary{ background: linear-gradient(180deg, var(--primary), #2563eb); color:#fff; border-color: transparent; }
-    .btn.ghost{ background: var(--card); }
     .btn.print{ background:linear-gradient(180deg,#ef4444,#dc2626); color:#fff; border-color:transparent; }
     .grid{ display:grid; grid-template-columns:1fr; gap:20px; }
     @media (min-width: 900px){ .grid{ grid-template-columns: 1.1fr .9fr; } }
     .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:20px; box-shadow:var(--shadow); }
     .group{ display:grid; gap:14px; }
     label span{ display:block; color:var(--muted); font-size:12px; margin-bottom:6px; }
-    input[type=number]{ width:100%; border:1px solid var(--border); background: #fff; color:#0f172a; border-radius:12px; padding:10px 12px; font-size:16px; }
-    html.dark input[type=number]{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
+    input[type=number]{ width:100%; border:1px solid var(--border); background: var(--bg); color:var(--fg); border-radius:12px; padding:10px 12px; font-size:16px; }
     input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
     .inline{ display:flex; align-items:center; gap:16px; color:var(--muted); font-size:14px; }
     .small{ font-size:12px; color:var(--muted); }
@@ -54,7 +55,6 @@
     .total{ margin-top:10px; padding:16px; border:1px solid var(--border); border-radius:16px; background: linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03)); }
     .total .value{ font-size:20px; font-weight:700; }
     .unit{ margin-top:6px; font-size:12px; color:var(--muted); }
-    @media print { .toolbar{ display:none !important; } body{ background:#fff; } .card{ box-shadow:none; } }
   </style>
 </head>
 <body>
@@ -69,7 +69,7 @@
       </div>
       <nav class="toolbar">
         <button id="calcBtn" class="btn primary">Bereken</button>
-        <button id="themeBtn" class="btn ghost" title="Schakel licht/donker">🌗 Thema</button>
+        <button id="themeBtn" class="btn" title="Schakel licht/donker">🌗 Thema</button>
         <button id="pdfBtn" class="btn print">⬇️ PDF</button>
       </nav>
     </header>
@@ -113,14 +113,13 @@
   </div>
 
   <script>
-    // Tariefparameters incl. btw
     const NET_PER_KWH = 0.0643857;
     const CAP_PER_KW_YEAR = 56.2987;
     const DATA_YEAR = 18.56;
     const BTW = 0.06;
-
     const fmt = new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' });
     const fmtUnit = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    const THEME_KEY = 'energy-theme-v2';
 
     function calc(){
       const kwh = parseFloat(document.getElementById('kwh').value || '0');
@@ -129,22 +128,18 @@
       const peakKwEl = document.getElementById('peakKw');
       const peakKw = peakKwEl && peakKwEl.value ? parseFloat(peakKwEl.value) : 11;
       const vatMode = document.querySelector('input[name="vatMode"]:checked')?.value || 'excl';
-
-      if(!kwh || !days){ 
+      if(!kwh || !days){
         ['netCost','capCost','dataCost','energyIncl','total','unitPrice'].forEach(id => document.getElementById(id).textContent='—');
         return;
       }
-
       const net = kwh * NET_PER_KWH;
       const cap = (days/365) * (peakKw * CAP_PER_KW_YEAR);
       const data = (days/365) * DATA_YEAR;
       const extras = net + cap + data;
-
       const energyExcl = kwh * price * (vatMode==='incl' ? (1/(1+BTW)) : 1);
       const energyIncl = energyExcl * (1+BTW);
       const total = energyIncl + extras;
       const unitAllIn = kwh > 0 ? total / kwh : 0;
-
       document.getElementById('netCost').textContent = fmt.format(net);
       document.getElementById('capCost').textContent = fmt.format(cap);
       document.getElementById('dataCost').textContent = fmt.format(data);
@@ -153,14 +148,24 @@
       document.getElementById('unitPrice').textContent = `${fmt.format(unitAllIn)} per kWh (${fmtUnit.format(unitAllIn)} €/kWh)`;
     }
 
-    function applyTheme(theme){
-      const html = document.documentElement;
-      if(theme==='dark'){ html.classList.add('dark'); }
-      else{ html.classList.remove('dark'); }
+    function setTheme(mode){
+      const body = document.body;
+      const meta = document.getElementById('meta-theme');
+      if(mode==='dark'){
+        body.classList.add('theme-dark');
+        localStorage.setItem(THEME_KEY, 'dark');
+        meta.setAttribute('content', '#0b1220');
+      }else{
+        body.classList.remove('theme-dark');
+        localStorage.setItem(THEME_KEY, 'light');
+        meta.setAttribute('content', '#f6f7fb');
+      }
     }
     function initTheme(){
+      const saved = localStorage.getItem(THEME_KEY);
+      if(saved){ return setTheme(saved); }
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      applyTheme(prefersDark ? 'dark' : 'light');
+      setTheme(prefersDark ? 'dark' : 'light');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -169,8 +174,8 @@
       document.querySelectorAll('input').forEach(el => el.addEventListener('input', calc));
       document.getElementById('pdfBtn').addEventListener('click', () => window.print());
       document.getElementById('themeBtn').addEventListener('click', () => {
-        const isDark = document.documentElement.classList.contains('dark');
-        applyTheme(isDark ? 'light' : 'dark');
+        const now = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
+        setTheme(now);
       });
     });
   </script>
