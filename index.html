@@ -44,7 +44,6 @@
     .total{ margin-top:10px; padding:16px; border:1px solid var(--border); border-radius:16px; background: linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03)); }
     .total .value{ font-size:20px; font-weight:700; }
     .unit{ margin-top:6px; font-size:12px; color:var(--muted); }
-    /* --- NIEUW: Styling voor de optionele jaarkost --- */
     .value .yearly-cost {
         font-size: 11px;
         color: var(--muted);
@@ -130,7 +129,6 @@
       const peakKwEl = document.getElementById('peakKw');
       const peakKw = peakKwEl && peakKwEl.value ? parseFloat(peakKwEl.value) : 4.5;
       const vatMode = document.querySelector('input[name="vatMode"]:checked')?.value || 'excl';
-      // --- NIEUW: Lees de status van de checkbox ---
       const showYearly = document.getElementById('showYearly').checked;
 
       const capExcl = (1 / 12) * (peakKw * (CAP_PER_KW_YEAR / (1 + BTW)));
@@ -161,7 +159,6 @@
       document.getElementById('total').textContent = fmt.format(total);
       document.getElementById('unitPrice').textContent = kwh > 0 ? `All-in: ${fmt.format(unitAllIn)} per kWh (${fmtUnit.format(unitAllIn)} €/kWh)` : 'Voer verbruik in voor kWh-prijs';
 
-      // --- NIEUW: Logica om de jaarkosten te tonen of verbergen ---
       const capYearlyEl = document.getElementById('capYearly');
       const dataYearlyEl = document.getElementById('dataYearly');
 
@@ -199,8 +196,6 @@
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setTheme(prefersDark ? 'dark' : 'light');
     }
-
-
 
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
