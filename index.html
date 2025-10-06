@@ -88,7 +88,7 @@
           </div>
         </details>
         <div style="margin-top:12px;">
-            <label class="inline small" style="gap:8px; cursor:pointer;"><input type="checkbox" id="showYearly"> Toon jaarkost voor vaste kosten</label>
+            <label class="inline small" style="gap:8px; cursor:pointer;"><input type="checkbox" id="showYearly" checked> Toon jaarkost voor vaste kosten</label>
         </div>
       </section>
 
@@ -128,6 +128,8 @@
     const fmt = new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' });
     const fmtUnit = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
     const THEME_KEY = 'energy-theme-v2';
+    // --- NIEUW: Sleutel voor het opslaan van de piekwaarde ---
+    const PEAK_KW_KEY = 'energy-peak-kw-v1';
 
     function calc() {
       const kwh = parseFloat(document.getElementById('kwh').value || '0');
@@ -136,6 +138,11 @@
       const peakKw = peakKwEl && peakKwEl.value ? parseFloat(peakKwEl.value) : 4.5;
       const vatMode = document.querySelector('input[name="vatMode"]:checked')?.value || 'excl';
       const showYearly = document.getElementById('showYearly').checked;
+
+      // --- NIEUW: Sla de ingevoerde piekwaarde op in localStorage ---
+      if (peakKw) {
+        localStorage.setItem(PEAK_KW_KEY, peakKw);
+      }
 
       const capExcl = (1 / 12) * (peakKw * (CAP_PER_KW_YEAR / (1 + BTW)));
       const dataExcl = (1 / 12) * (DATA_YEAR / (1 + BTW));
@@ -158,7 +165,6 @@
 
       const unitAllIn = kwh > 0 ? total / kwh : 0;
       
-      // DEZE CODE IS NU CORRECT EN ZAL GEEN FOUTEN MEER VEROORZAKEN
       document.getElementById('netCost').textContent = fmt.format(netIncl);
       document.getElementById('capCost').textContent = fmt.format(capIncl);
       document.getElementById('dataCost').textContent = fmt.format(dataIncl);
@@ -206,6 +212,13 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
+
+      // --- NIEUW: Laad de opgeslagen piekwaarde bij het starten ---
+      const savedPeakKw = localStorage.getItem(PEAK_KW_KEY);
+      if (savedPeakKw) {
+        document.getElementById('peakKw').value = savedPeakKw;
+      }
+
       calc();
 
       document.querySelectorAll('input').forEach(el => el.addEventListener('input', calc));
