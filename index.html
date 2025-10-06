@@ -38,12 +38,20 @@
     .inline{ display:flex; align-items:center; gap:16px; color:var(--muted); font-size:14px; }
     .small{ font-size:12px; color:var(--muted); }
     .results{ display:grid; gap:10px; }
-    .row{ display:flex; justify-content:space-between; gap:12px; align-items:baseline; }
+    .row{ display:flex; justify-content:space-between; gap:12px; align-items:center; }
     .row .label{ color:var(--muted); font-size:13px; font-weight:500; }
-    .row .value{ font-weight:600; font-variant-numeric: tabular-nums; }
+    .row .value{ font-weight:600; font-variant-numeric: tabular-nums; text-align:right; }
     .total{ margin-top:10px; padding:16px; border:1px solid var(--border); border-radius:16px; background: linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03)); }
     .total .value{ font-size:20px; font-weight:700; }
     .unit{ margin-top:6px; font-size:12px; color:var(--muted); }
+    /* --- NIEUW: Styling voor de optionele jaarkost --- */
+    .value .yearly-cost {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 500;
+        margin-left: 8px;
+        white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -80,13 +88,22 @@
             <label><span>Gemiddelde maandpiek (kW)</span><input id="peakKw" type="number" step="0.1" min="2.5" placeholder="bv. 4.5"></label>
           </div>
         </details>
+        <div style="margin-top:12px;">
+            <label class="inline small" style="gap:8px; cursor:pointer;"><input type="checkbox" id="showYearly"> Toon jaarkost voor vaste kosten</label>
+        </div>
       </section>
 
       <aside class="card">
         <div class="results">
           <div class="row"><div class="label">Netkosten per kWh</div><div class="value" id="netCost">—</div></div>
-          <div class="row"><div class="label">Capaciteitstarief (maandelijks)</div><div class="value" id="capCost">—</div></div>
-          <div class="row"><div class="label">Databeheer (maandelijks)</div><div class="value" id="dataCost">—</div></div>
+          <div class="row">
+            <div class="label">Capaciteitstarief (maandelijks)</div>
+            <div class="value" id="capCost">—<span class="yearly-cost" id="capYearly"></span></div>
+          </div>
+          <div class="row">
+            <div class="label">Databeheer (maandelijks)</div>
+            <div class="value" id="dataCost">—<span class="yearly-cost" id="dataYearly"></span></div>
+          </div>
           <div class="row"><div class="label">Energie (incl. btw)</div><div class="value" id="energyIncl">—</div></div>
         </div>
         <div class="total">
@@ -113,16 +130,19 @@
       const peakKwEl = document.getElementById('peakKw');
       const peakKw = peakKwEl && peakKwEl.value ? parseFloat(peakKwEl.value) : 4.5;
       const vatMode = document.querySelector('input[name="vatMode"]:checked')?.value || 'excl';
+      // --- NIEUW: Lees de status van de checkbox ---
+      const showYearly = document.getElementById('showYearly').checked;
 
-      if (!kwh) {
-        ['netCost', 'capCost', 'dataCost', 'energyIncl', 'total', 'unitPrice'].forEach(id => document.getElementById(id).textContent = '—');
-        return;
-      }
-      
-      const netExcl = kwh * (NET_PER_KWH / (1 + BTW));
       const capExcl = (1 / 12) * (peakKw * (CAP_PER_KW_YEAR / (1 + BTW)));
       const dataExcl = (1 / 12) * (DATA_YEAR / (1 + BTW));
-      const energyExcl = kwh * (vatMode === 'incl' ? (price / (1 + BTW)) : price);
+
+      let netExcl = 0;
+      let energyExcl = 0;
+
+      if (kwh > 0) {
+        netExcl = kwh * (NET_PER_KWH / (1 + BTW));
+        energyExcl = kwh * (vatMode === 'incl' ? (price / (1 + BTW)) : price);
+      }
       
       const subTotalExcl = netExcl + capExcl + dataExcl + energyExcl;
 
@@ -139,7 +159,21 @@
       document.getElementById('dataCost').textContent = fmt.format(dataIncl);
       document.getElementById('energyIncl').textContent = fmt.format(energyIncl);
       document.getElementById('total').textContent = fmt.format(total);
-      document.getElementById('unitPrice').textContent = `All-in: ${fmt.format(unitAllIn)} per kWh (${fmtUnit.format(unitAllIn)} €/kWh)`;
+      document.getElementById('unitPrice').textContent = kwh > 0 ? `All-in: ${fmt.format(unitAllIn)} per kWh (${fmtUnit.format(unitAllIn)} €/kWh)` : 'Voer verbruik in voor kWh-prijs';
+
+      // --- NIEUW: Logica om de jaarkosten te tonen of verbergen ---
+      const capYearlyEl = document.getElementById('capYearly');
+      const dataYearlyEl = document.getElementById('dataYearly');
+
+      if (showYearly) {
+        const capYearlyTotal = peakKw * CAP_PER_KW_YEAR;
+        const dataYearlyTotal = DATA_YEAR;
+        capYearlyEl.textContent = `(${fmt.format(capYearlyTotal)}/jaar)`;
+        dataYearlyEl.textContent = `(${fmt.format(dataYearlyTotal)}/jaar)`;
+      } else {
+        capYearlyEl.textContent = '';
+        dataYearlyEl.textContent = '';
+      }
     }
 
     function setTheme(mode) {
@@ -165,6 +199,8 @@
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setTheme(prefersDark ? 'dark' : 'light');
     }
+
+
 
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
