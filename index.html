@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Energiekosten</title>
+  <title>Energiekosten per Maand</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -52,12 +52,11 @@
       <div class="title">
         <div class="logo" aria-hidden="true"></div>
         <div>
-          <h1>Energiekosten</h1>
+          <h1>Energiekosten per Maand</h1>
           <div class="sub">Zandhoven (2240) · Fluvius Kempen · btw 6%</div>
         </div>
       </div>
       <nav class="toolbar">
-        <button id="calcBtn" class="btn primary">Bereken</button>
         <button id="themeBtn" class="btn" title="Schakel licht/donker">🌗 Thema</button>
         <button id="pdfBtn" class="btn print">⬇️ PDF</button>
       </nav>
@@ -66,11 +65,8 @@
     <main class="grid">
       <section class="card">
         <div class="group">
-          <label><span>Verbruik (kWh)</span><input id="kwh" type="number" step="0.01" min="0" placeholder="bv. 400"></label>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <label><span>Periode — van</span><input id="dateFrom" type="date" placeholder="startdatum"></label>
-            <label><span>Periode — tot</span><input id="dateTo" type="date"></label>
-          </div>
+          <label><span>Maandverbruik (kWh)</span><input id="kwh" type="number" step="0.01" min="0" placeholder="bv. 250"></label>
+          
           <label><span>Energieprijs (€/kWh)</span><input id="energyPrice" type="number" step="0.0001" min="0" value="0.10"></label>
         </div>
         <div style="height:8px"></div>
@@ -82,21 +78,20 @@
         <details style="margin-top:10px;">
           <summary class="small" style="cursor:pointer;">Geavanceerd (capaciteitstarief)</summary>
           <div class="group" style="margin-top:10px;">
-            <label><span>Piek (kW)</span><input id="peakKw" type="number" step="0.1" min="2.5" placeholder="bv. 11"></label>
+            <label><span>Gemiddelde maandpiek (kW)</span><input id="peakKw" type="number" step="0.1" min="2.5" placeholder="bv. 4.5"></label>
           </div>
         </details>
-        <p class="small">Tip: kies je periode met de datumvelden. Dagen worden automatisch berekend.</p>
       </section>
 
       <aside class="card">
         <div class="results">
           <div class="row"><div class="label">Netkosten per kWh</div><div class="value" id="netCost">—</div></div>
-          <div class="row"><div class="label">Capaciteitstarief</div><div class="value" id="capCost">—</div></div>
-          <div class="row"><div class="label">Databeheer</div><div class="value" id="dataCost">—</div></div>
+          <div class="row"><div class="label">Capaciteitstarief (maandelijks)</div><div class="value" id="capCost">—</div></div>
+          <div class="row"><div class="label">Databeheer (maandelijks)</div><div class="value" id="dataCost">—</div></div>
           <div class="row"><div class="label">Energie (incl. btw)</div><div class="value" id="energyIncl">—</div></div>
         </div>
         <div class="total">
-          <div class="row"><div class="label">Totaal te betalen (incl. btw)</div><div class="value" id="total">—</div></div>
+          <div class="row"><div class="label">Totaal te betalen per maand</div><div class="value" id="total">—</div></div>
           <div class="unit" id="unitPrice">—</div>
         </div>
         <p class="small">Parameters (incl. btw) – 2025: net 0,0643857 €/kWh · capaciteit 56,2987 €/kW/jaar · databeheer 18,56 €/jaar.</p>
@@ -113,44 +108,25 @@
     const fmtUnit = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
     const THEME_KEY = 'energy-theme-v2';
 
-    function parseDays(fromStr, toStr) {
-      if (!fromStr || !toStr) return 0;
-      const from = new Date(fromStr + 'T00:00:00');
-      const to = new Date(toStr + 'T00:00:00');
-      const ms = to.getTime() - from.getTime();
-      return ms >= 0 ? Math.ceil(ms / 86400000) + 1 : 0;
-    }
-
-    function parseMonths(fromStr, toStr) {
-        if (!fromStr || !toStr) return 0;
-        const from = new Date(fromStr + 'T00:00:00');
-        const to = new Date(toStr + 'T00:00:00');
-        if (to < from) return 0;
-
-        const months = (to.getFullYear() - from.getFullYear()) * 12;
-        return months - from.getMonth() + to.getMonth() + 1;
-    }
+    // VERWIJDERD: parseDays en parseMonths functies zijn niet meer nodig.
 
     function calc() {
       const kwh = parseFloat(document.getElementById('kwh').value || '0');
-      const dateFrom = document.getElementById('dateFrom').value;
-      const dateTo = document.getElementById('dateTo').value;
-      const days = parseDays(dateFrom, dateTo);
-      const months = parseMonths(dateFrom, dateTo);
-      
       const price = parseFloat(document.getElementById('energyPrice').value || '0');
       const peakKwEl = document.getElementById('peakKw');
-      const peakKw = peakKwEl && peakKwEl.value ? parseFloat(peakKwEl.value) : 11;
+      // Een realistischere default voor een maandpiek
+      const peakKw = peakKwEl && peakKwEl.value ? parseFloat(peakKwEl.value) : 4.5;
       const vatMode = document.querySelector('input[name="vatMode"]:checked')?.value || 'excl';
 
-      if (!kwh || !days) {
+      if (!kwh) {
         ['netCost', 'capCost', 'dataCost', 'energyIncl', 'total', 'unitPrice'].forEach(id => document.getElementById(id).textContent = '—');
         return;
       }
       
+      // AANGEPAST: Berekening is nu altijd voor exact 1 maand.
       const netExcl = kwh * (NET_PER_KWH / (1 + BTW));
-      const capExcl = (months / 12) * (peakKw * (CAP_PER_KW_YEAR / (1 + BTW)));
-      const dataExcl = (months / 12) * (DATA_YEAR / (1 + BTW));
+      const capExcl = (1 / 12) * (peakKw * (CAP_PER_KW_YEAR / (1 + BTW)));
+      const dataExcl = (1 / 12) * (DATA_YEAR / (1 + BTW));
       const energyExcl = kwh * (vatMode === 'incl' ? (price / (1 + BTW)) : price);
       
       const subTotalExcl = netExcl + capExcl + dataExcl + energyExcl;
@@ -168,7 +144,8 @@
       document.getElementById('dataCost').textContent = fmt.format(dataIncl);
       document.getElementById('energyIncl').textContent = fmt.format(energyIncl);
       document.getElementById('total').textContent = fmt.format(total);
-      document.getElementById('unitPrice').textContent = `${fmt.format(unitAllIn)} per kWh (${fmtUnit.format(unitAllIn)} €/kWh) — periode: ${days} dag(en), ${months} maand(en)`;
+      // AANGEPAST: De omschrijving is nu eenduidig per maand.
+      document.getElementById('unitPrice').textContent = `All-in: ${fmt.format(unitAllIn)} per kWh (${fmtUnit.format(unitAllIn)} €/kWh)`;
     }
 
     function setTheme(mode) {
@@ -197,17 +174,10 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
-
-      const today = new Date();
-      const dateToEl = document.getElementById('dateTo');
-      const dateFromEl = document.getElementById('dateFrom');
-
-      dateToEl.value = today.toISOString().slice(0, 10);
-      dateFromEl.value = `${today.getFullYear()}-01-01`;
-      
+      // Start met een lege berekening
       calc();
 
-      document.getElementById('calcBtn').addEventListener('click', calc);
+      // De "Bereken" knop is weggehaald, berekening gebeurt live.
       document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calc));
       document.getElementById('pdfBtn').addEventListener('click', () => window.print());
       document.getElementById('themeBtn').addEventListener('click', () => {
