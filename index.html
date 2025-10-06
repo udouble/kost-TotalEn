@@ -53,7 +53,7 @@
         <div class="logo" aria-hidden="true"></div>
         <div>
           <h1>Energiekosten</h1>
-          <div class="sub">Zandhoven (2240) · Fluvius Kempen · btw 6%</div>
+          <div class="sub">Zandhoven (2240) · Fluvius Kempen · btw 6%</div>
         </div>
       </div>
       <nav class="toolbar">
@@ -69,7 +69,7 @@
           <label><span>Verbruik (kWh)</span><input id="kwh" type="number" step="0.01" min="0" placeholder="bv. 400"></label>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <label><span>Periode — van</span><input id="dateFrom" type="date" placeholder="startdatum"></label>
-            <label><span>Periode — tot</span><input id="dateTo" type="date" value="2025-09-28"></label>
+            <label><span>Periode — tot</span><input id="dateTo" type="date"></label>
           </div>
           <label><span>Energieprijs (€/kWh)</span><input id="energyPrice" type="number" step="0.0001" min="0" value="0.10"></label>
         </div>
@@ -99,7 +99,7 @@
           <div class="row"><div class="label">Totaal te betalen (incl. btw)</div><div class="value" id="total">—</div></div>
           <div class="unit" id="unitPrice">—</div>
         </div>
-        <p class="small">Parameters (incl. btw) – 2025: net 0,0643857 €/kWh · capaciteit 56,2987 €/kW/jaar · databeheer 18,56 €/jaar.</p>
+        <p class="small">Parameters (incl. btw) – 2025: net 0,0643857 €/kWh · capaciteit 56,2987 €/kW/jaar · databeheer 18,56 €/jaar.</p>
       </aside>
     </main>
   </div>
@@ -111,17 +111,17 @@
     const BTW = 0.06;
     const fmt = new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' });
     const fmtUnit = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-    const THEME_KEY='energy-theme-v2';
+    const THEME_KEY = 'energy-theme-v2';
 
-    function parseDays(fromStr, toStr){
-      if(!fromStr || !toStr) return 0;
+    function parseDays(fromStr, toStr) {
+      if (!fromStr || !toStr) return 0;
       const from = new Date(fromStr + 'T00:00:00');
       const to = new Date(toStr + 'T00:00:00');
       const ms = to.getTime() - from.getTime();
-      return ms>0 ? Math.ceil(ms / 86400000) : 0;
+      return ms >= 0 ? Math.ceil(ms / 86400000) + 1 : 0;
     }
 
-    function calc(){
+    function calc() {
       const kwh = parseFloat(document.getElementById('kwh').value || '0');
       const dateFrom = document.getElementById('dateFrom').value;
       const dateTo = document.getElementById('dateTo').value;
@@ -130,41 +130,68 @@
       const peakKwEl = document.getElementById('peakKw');
       const peakKw = peakKwEl && peakKwEl.value ? parseFloat(peakKwEl.value) : 11;
       const vatMode = document.querySelector('input[name="vatMode"]:checked')?.value || 'excl';
-      if(!kwh || !days){
-        ['netCost','capCost','dataCost','energyIncl','total','unitPrice'].forEach(id => document.getElementById(id).textContent='—');
+
+      if (!kwh || !days) {
+        ['netCost', 'capCost', 'dataCost', 'energyIncl', 'total', 'unitPrice'].forEach(id => document.getElementById(id).textContent = '—');
         return;
       }
-      const net = kwh * NET_PER_KWH;
-      const cap = (days/365) * (peakKw * CAP_PER_KW_YEAR);
-      const data = (days/365) * DATA_YEAR;
-      const extras = net + cap + data;
-      const energyExcl = kwh * price * (vatMode==='incl' ? (1/(1+BTW)) : 1);
-      const energyIncl = energyExcl * (1+BTW);
-      const total = energyIncl + extras;
+      
+      const netExcl = kwh * (NET_PER_KWH / (1 + BTW));
+      const capExcl = (days / 365) * (peakKw * (CAP_PER_KW_YEAR / (1 + BTW)));
+      const dataExcl = (days / 365) * (DATA_YEAR / (1 + BTW));
+      const energyExcl = kwh * (vatMode === 'incl' ? (price / (1 + BTW)) : price);
+      
+      const subTotalExcl = netExcl + capExcl + dataExcl + energyExcl;
+
+      const netIncl = netExcl * (1 + BTW);
+      const capIncl = capExcl * (1 + BTW);
+      const dataIncl = dataExcl * (1 + BTW);
+      const energyIncl = energyExcl * (1 + BTW);
+      const total = subTotalExcl * (1 + BTW);
+
       const unitAllIn = kwh > 0 ? total / kwh : 0;
-      document.getElementById('netCost').textContent = fmt.format(net);
-      document.getElementById('capCost').textContent = fmt.format(cap);
-      document.getElementById('dataCost').textContent = fmt.format(data);
+      
+      document.getElementById('netCost').textContent = fmt.format(netIncl);
+      document.getElementById('capCost').textContent = fmt.format(capIncl);
+      document.getElementById('dataCost').textContent = fmt.format(dataIncl);
       document.getElementById('energyIncl').textContent = fmt.format(energyIncl);
       document.getElementById('total').textContent = fmt.format(total);
       document.getElementById('unitPrice').textContent = `${fmt.format(unitAllIn)} per kWh (${fmtUnit.format(unitAllIn)} €/kWh) — periode: ${days} dag(en)`;
     }
 
-    function setTheme(mode){
+    function setTheme(mode) {
       const body = document.body;
       const meta = document.getElementById('meta-theme');
-      if(mode==='dark'){ body.classList.add('theme-dark'); localStorage.setItem(THEME_KEY,'dark'); meta.setAttribute('content','#0b1220'); }
-      else{ body.classList.remove('theme-dark'); localStorage.setItem(THEME_KEY,'light'); meta.setAttribute('content','#f6f7fb'); }
+      if (mode === 'dark') {
+        body.classList.add('theme-dark');
+        localStorage.setItem(THEME_KEY, 'dark');
+        meta.setAttribute('content', '#0b1220');
+      } else {
+        body.classList.remove('theme-dark');
+        localStorage.setItem(THEME_KEY, 'light');
+        meta.setAttribute('content', '#f6f7fb');
+      }
     }
-    function initTheme(){
+
+    function initTheme() {
       const saved = localStorage.getItem(THEME_KEY);
-      if(saved) return setTheme(saved);
+      if (saved) return setTheme(saved);
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setTheme(prefersDark ? 'dark' : 'light');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
+
+      const today = new Date();
+      const dateToEl = document.getElementById('dateTo');
+      const dateFromEl = document.getElementById('dateFrom');
+
+      dateToEl.value = today.toISOString().slice(0, 10);
+      dateFromEl.value = `${today.getFullYear()}-01-01`;
+      
+      calc();
+
       document.getElementById('calcBtn').addEventListener('click', calc);
       document.querySelectorAll('input').forEach(el => el.addEventListener('input', calc));
       document.getElementById('pdfBtn').addEventListener('click', () => window.print());
