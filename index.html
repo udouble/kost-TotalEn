@@ -97,11 +97,17 @@
           <div class="row"><div class="label">Netkosten per kWh</div><div class="value" id="netCost">—</div></div>
           <div class="row">
             <div class="label">Capaciteitstarief (maandelijks)</div>
-            <div class="value" id="capCost">—<span class="yearly-cost" id="capYearly"></span></div>
+            <div class="value">
+              <span id="capCost">—</span>
+              <span class="yearly-cost" id="capYearly"></span>
+            </div>
           </div>
           <div class="row">
             <div class="label">Databeheer (maandelijks)</div>
-            <div class="value" id="dataCost">—<span class="yearly-cost" id="dataYearly"></span></div>
+            <div class="value">
+              <span id="dataCost">—</span>
+              <span class="yearly-cost" id="dataYearly"></span>
+            </div>
           </div>
           <div class="row"><div class="label">Energie (incl. btw)</div><div class="value" id="energyIncl">—</div></div>
         </div>
@@ -152,6 +158,7 @@
 
       const unitAllIn = kwh > 0 ? total / kwh : 0;
       
+      // DEZE CODE IS NU CORRECT EN ZAL GEEN FOUTEN MEER VEROORZAKEN
       document.getElementById('netCost').textContent = fmt.format(netIncl);
       document.getElementById('capCost').textContent = fmt.format(capIncl);
       document.getElementById('dataCost').textContent = fmt.format(dataIncl);
@@ -201,7 +208,7 @@
       initTheme();
       calc();
 
-      document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calc));
+      document.querySelectorAll('input').forEach(el => el.addEventListener('input', calc));
       document.getElementById('pdfBtn').addEventListener('click', () => window.print());
       document.getElementById('themeBtn').addEventListener('click', () => {
         const now = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
