@@ -44,11 +44,12 @@
     .total{ margin-top:10px; padding:16px; border:1px solid var(--border); border-radius:16px; background: linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03)); }
     .total .value{ font-size:20px; font-weight:700; }
     .unit{ margin-top:6px; font-size:12px; color:var(--muted); }
+    /* --- AANGEPAST: Styling voor de jaarkost onder de maandkost --- */
     .value .yearly-cost {
+        display: block;
         font-size: 11px;
         color: var(--muted);
         font-weight: 500;
-        margin-left: 8px;
         white-space: nowrap;
     }
   </style>
@@ -128,8 +129,9 @@
     const fmt = new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' });
     const fmtUnit = new Intl.NumberFormat('nl-BE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
     const THEME_KEY = 'energy-theme-v2';
-    // --- NIEUW: Sleutel voor het opslaan van de piekwaarde ---
     const PEAK_KW_KEY = 'energy-peak-kw-v1';
+    // --- NIEUW: Sleutel voor het opslaan van de energieprijs ---
+    const ENERGY_PRICE_KEY = 'energy-price-v1';
 
     function calc() {
       const kwh = parseFloat(document.getElementById('kwh').value || '0');
@@ -139,9 +141,12 @@
       const vatMode = document.querySelector('input[name="vatMode"]:checked')?.value || 'excl';
       const showYearly = document.getElementById('showYearly').checked;
 
-      // --- NIEUW: Sla de ingevoerde piekwaarde op in localStorage ---
       if (peakKw) {
         localStorage.setItem(PEAK_KW_KEY, peakKw);
+      }
+      // --- NIEUW: Sla de ingevoerde energieprijs op ---
+      if (price) {
+        localStorage.setItem(ENERGY_PRICE_KEY, price);
       }
 
       const capExcl = (1 / 12) * (peakKw * (CAP_PER_KW_YEAR / (1 + BTW)));
@@ -178,8 +183,8 @@
       if (showYearly) {
         const capYearlyTotal = peakKw * CAP_PER_KW_YEAR;
         const dataYearlyTotal = DATA_YEAR;
-        capYearlyEl.textContent = `(${fmt.format(capYearlyTotal)}/jaar)`;
-        dataYearlyEl.textContent = `(${fmt.format(dataYearlyTotal)}/jaar)`;
+        capYearlyEl.textContent = `${fmt.format(capYearlyTotal)}/jaar`;
+        dataYearlyEl.textContent = `${fmt.format(dataYearlyTotal)}/jaar`;
       } else {
         capYearlyEl.textContent = '';
         dataYearlyEl.textContent = '';
@@ -213,10 +218,14 @@
     window.addEventListener('DOMContentLoaded', () => {
       initTheme();
 
-      // --- NIEUW: Laad de opgeslagen piekwaarde bij het starten ---
       const savedPeakKw = localStorage.getItem(PEAK_KW_KEY);
       if (savedPeakKw) {
         document.getElementById('peakKw').value = savedPeakKw;
+      }
+      // --- NIEUW: Laad de opgeslagen energieprijs bij het starten ---
+      const savedEnergyPrice = localStorage.getItem(ENERGY_PRICE_KEY);
+      if (savedEnergyPrice) {
+        document.getElementById('energyPrice').value = savedEnergyPrice;
       }
 
       calc();
