@@ -1,65 +1,130 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
-    <meta charset="utf-8">
-    <title>Test Energie</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        .input-box { background: #eee; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        input { display: block; margin-bottom: 10px; padding: 8px; width: 200px; }
-        #resultaat { font-weight: bold; color: blue; font-size: 1.2em; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Energiekosten per Maand</title>
+  <style>
+    body{
+      --bg:#f6f7fb; --fg:#0f172a; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb;
+      --primary:#3b82f6; --shadow:0 6px 20px rgba(0,0,0,.06);
+      background:var(--bg); color:var(--fg); margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; line-height:1.45;
+    }
+    *{ box-sizing:border-box; }
+    .wrap{ max-width: 900px; margin: 40px auto; padding: 0 16px; }
+    header{ margin-bottom: 24px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+    h1{ margin:0; font-size: 24px; color: var(--primary); }
+    .sub{ color:var(--muted); font-size:14px; }
+    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:24px; }
+    @media (max-width: 800px){ .grid{ grid-template-columns: 1fr; } }
+    .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:24px; box-shadow:var(--shadow); }
+    .group{ display:grid; gap:16px; }
+    label span{ display:block; color:var(--muted); font-size:12px; margin-bottom:6px; font-weight:bold; text-transform: uppercase; }
+    input{ width:100%; border:1px solid var(--border); background: var(--bg); color:var(--fg); border-radius:12px; padding:12px; font-size:16px; }
+    .results{ display:grid; gap:12px; }
+    .row{ display:flex; justify-content:space-between; align-items:center; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
+    .row .label{ color:var(--muted); font-size:14px; }
+    .row .value{ font-weight:700; font-size:16px; }
+    .total-box{ margin-top:20px; padding:20px; border-radius:16px; background: linear-gradient(135deg, #3b82f6, #2563eb); color:white; text-align:center; }
+    .total-box .price{ font-size:32px; font-weight:800; display:block; }
+    .info-tag { background:#eff6ff; color:#1e40af; padding:12px; border-radius:10px; font-size:13px; margin-top:15px; border:1px solid #dbeafe; }
+  </style>
 </head>
 <body>
-    <h1>Energie Extrapolatie Test</h1>
-    
-    <div class="input-box">
-        <label>Datum stand:</label>
-        <input type="date" id="datum" onchange="bereken()">
+  <div class="wrap">
+    <header>
+      <h1>Energiekosten Maandvoorspelling</h1>
+      <div class="sub">Zandhoven (2240) · Parameters 2025 · btw 6%</div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="group">
+          <label><span>Datum van stand (t/m wanneer)</span><input id="readingDate" type="date" onchange="calc()"></label>
+          <label><span>Geregistreerd verbruik (kWh)</span><input id="kwh" type="number" value="150" step="0.01" oninput="calc()"></label>
+          <label><span>Energieprijs (€/kWh excl. btw)</span><input id="energyPrice" type="number" value="0.10" step="0.0001" oninput="calc()"></label>
+          <label><span>Gemiddelde maandpiek (kW)</span><input id="peakKw" type="number" value="4.50" step="0.1" oninput="calc()"></label>
+        </div>
+        <div id="infoTag" class="info-tag">Berekening wordt geladen...</div>
+      </section>
+
+      <aside class="card">
+        <div class="results">
+          <div class="row"><div class="label">Maandverbruik (geëxtrapoleerd)</div><div class="value" id="resKwh">—</div></div>
+          <div class="row"><div class="label">Netkosten (€0,0644/kWh)</div><div class="value" id="resNet">—</div></div>
+          <div class="row"><div class="label">Capaciteitstarief (maand)</div><div class="value" id="resCap">—</div></div>
+          <div class="row"><div class="label">Databeheer (maand)</div><div class="value" id="resData">—</div></div>
+          <div class="row"><div class="label">Energieprijs (incl. btw)</div><div class="value" id="resEnergy">—</div></div>
+        </div>
         
-        <label>Verbruik (kWh):</label>
-        <input type="number" id="verbruik" value="100" oninput="bereken()">
-        
-        <label>Prijs per kWh (excl):</label>
-        <input type="number" id="prijs" value="0.10" step="0.01" oninput="bereken()">
-    </div>
+        <div class="total-box">
+          <span>Totaal te betalen deze maand</span>
+          <span class="price" id="resTotal">€ 0,00</span>
+          <small id="resAllIn" style="opacity:0.9; font-size:11px;"></small>
+        </div>
+        <button onclick="window.print()" style="margin-top:20px; width:100%; border:none; background:#eee; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold; color:#666;">⬇️ PDF Opslaan</button>
+      </aside>
+    </main>
+  </div>
 
-    <div id="resultaat">Resultaat verschijnt hier...</div>
+  <script>
+    const NET_KWH = 0.0643857; // incl btw
+    const CAP_YEAR = 56.2987;   // incl btw
+    const DATA_YEAR = 18.56;    // incl btw
+    const fmt = new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' });
 
-    <script>
-        function bereken() {
-            const v = parseFloat(document.getElementById('verbruik').value) || 0;
-            const p = parseFloat(document.getElementById('prijs').value) || 0;
-            const dStr = document.getElementById('datum').value;
-            
-            if(!dStr) return;
+    function calc() {
+      const inputKwh = parseFloat(document.getElementById('kwh').value) || 0;
+      const energyPriceExcl = parseFloat(document.getElementById('energyPrice').value) || 0;
+      const peakKw = parseFloat(document.getElementById('peakKw').value) || 2.5;
+      const dateVal = document.getElementById('readingDate').value;
 
-            const onderdelen = dStr.split('-');
-            const dag = parseInt(onderdelen[2]);
-            const maand = parseInt(onderdelen[1]);
-            const jaar = parseInt(onderdelen[0]);
-            
-            const dagenInMaand = new Date(jaar, maand, 0).getDate();
-            const extrapolatie = (v / dag) * dagenInMaand;
-            const kost = extrapolatie * p * 1.06; // incl 6% btw
+      if (!dateVal) return;
 
-            document.getElementById('resultaat').innerHTML = 
-                "Dagen in maand: " + dagenInMaand + "<br>" +
-                "Voorspeld verbruik: " + extrapolatie.toFixed(2) + " kWh<br>" +
-                "Voorspelde kost: € " + kost.toFixed(2);
-        }
+      // Datum verwerken
+      const parts = dateVal.split('-');
+      const dag = parseInt(parts[2]);
+      const maand = parseInt(parts[1]);
+      const jaar = parseInt(parts[0]);
+      const dagenInMaand = new Date(jaar, maand, 0).getDate();
 
-        // Bij opstarten:
-        window.onload = function() {
-            const vandaag = new Date();
-            vandaag.setDate(vandaag.getDate() - 2);
-            const dag = String(vandaag.getDate()).padStart(2, '0');
-            const maand = String(vandaag.getMonth() + 1).padStart(2, '0');
-            const jaar = vandaag.getFullYear();
-            
-            document.getElementById('datum').value = jaar + "-" + maand + "-" + dag;
-            bereken();
-        };
-    </script>
+      // 1. Extrapolatie
+      const extraKwh = (inputKwh / dag) * dagenInMaand;
+
+      // 2. Kosten berekenen (alles incl 6% waar nodig)
+      const costNet = extraKwh * NET_KWH;
+      const costCap = (peakKw * CAP_YEAR) / 12;
+      const costData = DATA_YEAR / 12;
+      const costEnergy = (extraKwh * energyPriceExcl) * 1.06;
+      
+      const total = costNet + costCap + costData + costEnergy;
+
+      // 3. UI Bijwerken
+      document.getElementById('resKwh').textContent = Math.round(extraKwh) + " kWh";
+      document.getElementById('resNet').textContent = fmt.format(costNet);
+      document.getElementById('resCap').textContent = fmt.format(costCap);
+      document.getElementById('resData').textContent = fmt.format(costData);
+      document.getElementById('resEnergy').textContent = fmt.format(costEnergy);
+      document.getElementById('resTotal').textContent = fmt.format(total);
+      
+      const allIn = total / extraKwh;
+      document.getElementById('resAllIn').textContent = "All-in prijs: " + allIn.toFixed(3) + " €/kWh";
+      
+      document.getElementById('infoTag').textContent = "Info: Gebaseerd op " + dag + " van de " + dagenInMaand + " dagen in deze maand.";
+    }
+
+    window.onload = function() {
+      // Stel datum in op VANDAAG MIN 2 DAGEN
+      const d = new Date();
+      d.setDate(d.getDate() - 2);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      document.getElementById('readingDate').value = yyyy + "-" + mm + "-" + dd;
+      
+      calc();
+    };
+  </script>
 </body>
 </html>
