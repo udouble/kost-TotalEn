@@ -4,10 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Energiekosten per Maand</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta id="meta-theme" name="theme-color" content="#f6f7fb">
   <style>
     body{
       --bg:#f6f7fb; --fg:#0f172a; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb;
@@ -20,74 +16,72 @@
     .wrap{ max-width: 920px; margin: 48px auto; padding: 0 16px; }
     header{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom: 18px; }
     .title{ display:flex; align-items:center; gap:12px; }
-    .logo{ width:28px; height:28px; border-radius:8px; background: linear-gradient(180deg,#ff8c00,#0096ff); position:relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); }
-    .logo:before{ content:""; position:absolute; inset:0; border-radius:8px; background: radial-gradient(ellipse at 50% -30%, rgba(255,255,255,.75), rgba(255,255,255,0) 60%); }
+    .logo{ width:28px; height:28px; border-radius:8px; background: linear-gradient(180deg,#ff8c00,#0096ff); position:relative; }
     h1{ margin:0; font-weight:700; font-size: clamp(20px, 3.1vw, 30px); letter-spacing:.2px; }
     .sub{ margin-top:2px; color:var(--muted); font-size:13px; font-weight:500; }
-    .toolbar{ display:flex; gap:8px; flex-wrap:wrap; }
-    .btn{ border:1px solid var(--border); background: var(--card); color: var(--fg); padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; box-shadow:var(--shadow); }
-    .btn.primary{ background: linear-gradient(180deg, var(--primary), #2563eb); color:#fff; border-color: transparent; }
+    .btn{ border:1px solid var(--border); background: var(--card); color: var(--fg); padding:10px 14px; border-radius:12px; font-weight:600; cursor:pointer; }
     .btn.print{ background:linear-gradient(180deg,#ef4444,#dc2626); color:#fff; border-color:transparent; }
     .grid{ display:grid; grid-template-columns:1fr; gap:20px; }
     @media (min-width: 900px){ .grid{ grid-template-columns: 1.1fr .9fr; } }
     .card{ background:var(--card); border:1px solid var(--border); border-radius:18px; padding:20px; box-shadow:var(--shadow); }
     .group{ display:grid; gap:14px; }
     label span{ display:block; color:var(--muted); font-size:12px; margin-bottom:6px; }
-    input[type=number], input[type=date]{ width:100%; border:1px solid var(--border); background: var(--bg); color:var(--fg); border-radius:12px; padding:10px 12px; font-size:16px; font-family: inherit; }
-    input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
-    .inline{ display:flex; align-items:center; gap:16px; color:var(--muted); font-size:14px; }
-    .small{ font-size:12px; color:var(--muted); }
+    input{ width:100%; border:1px solid var(--border); background: var(--bg); color:var(--fg); border-radius:12px; padding:10px 12px; font-size:16px; font-family:inherit; }
     .results{ display:grid; gap:10px; }
     .row{ display:flex; justify-content:space-between; gap:12px; align-items:center; }
     .row .label{ color:var(--muted); font-size:13px; font-weight:500; }
     .row .value{ font-weight:600; font-variant-numeric: tabular-nums; text-align:right; }
     .total{ margin-top:10px; padding:16px; border:1px solid var(--border); border-radius:16px; background: linear-gradient(180deg, rgba(37,99,235,.08), rgba(37,99,235,.03)); }
     .total .value{ font-size:20px; font-weight:700; }
-    .unit{ margin-top:6px; font-size:12px; color:var(--muted); }
-    .value .yearly-cost {
-        display: block;
-        font-size: 11px;
-        color: var(--muted);
-        font-weight: 500;
-        white-space: nowrap;
-    }
-    .info-box {
-      margin-top: 10px;
-      padding: 10px;
-      background: rgba(59, 130, 246, 0.1);
-      border-radius: 8px;
-      font-size: 12px;
-      color: var(--primary);
-      display: none;
-    }
+    .info-box { margin-top: 10px; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; font-size: 12px; color: var(--primary); }
+    .yearly-cost { display: block; font-size: 11px; color: var(--muted); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div class="title">
-        <div class="logo" aria-hidden="true"></div>
+        <div class="logo"></div>
         <div>
           <h1>Energiekosten per Maand</h1>
           <div class="sub">Zandhoven (2240) · Fluvius Kempen · btw 6%</div>
         </div>
       </div>
-      <nav class="toolbar">
-        <button id="themeBtn" class="btn" title="Schakel licht/donker">🌗 Thema</button>
+      <div class="toolbar">
+        <button id="themeBtn" class="btn">🌗 Thema</button>
         <button id="pdfBtn" class="btn print">⬇️ PDF</button>
-      </nav>
+      </div>
     </header>
 
     <main class="grid">
       <section class="card">
         <div class="group">
-          <label><span>Datum van de stand van zaken (verbruik t/m)</span><input id="readingDate" type="date"></label>
-          <label><span>Geregistreerd verbruik (kWh)</span><input id="kwh" type="number" step="0.01" min="0" placeholder="bv. 250"></label>
-          <label><span>Energieprijs (€/kWh)</span><input id="energyPrice" type="number" step="0.0001" min="0" value="0.10"></label>
+          <label><span>Datum van stand van zaken</span><input id="readingDate" type="date"></label>
+          <label><span>Verbruik tot die datum (kWh)</span><input id="kwh" type="number" step="0.01" value="0"></label>
+          <label><span>Energieprijs (€/kWh)</span><input id="energyPrice" type="number" step="0.0001" value="0.10"></label>
         </div>
-        <div style="height:8px"></div>
-        <div class="inline">
-          <span>kWh‑tarief is</span>
-          <label><input type="radio" name="vatMode" value="excl" checked> excl. btw</label>
-          <label><input type="radio" name="vatMode" value="incl"> incl. btw</label>
+        <div id="extrapolationInfo" class="info-box"></div>
+        <details style="margin-top:10px;"><summary style="cursor:pointer; font-size:12px; color:var(--muted)">Geavanceerd</summary>
+          <div class="group" style="margin-top:10px;">
+            <label><span>Maandpiek (kW)</span><input id="peakKw" type="number" step="0.1" value="4.5"></label>
+          </div>
+        </details>
+      </section>
+
+      <aside class="card">
+        <div class="results">
+          <div class="row"><div class="label">Maandverbruik (voorspeld)</div><div class="value" id="extrapolatedKwh">0 kWh</div></div>
+          <div class="row"><div class="label">Netkosten</div><div class="value" id="netCost">€ 0,00</div></div>
+          <div class="row"><div class="label">Capaciteitstarief</div><div class="value" id="capCost">€ 0,00</div></div>
+          <div class="row"><div class="label">Databeheer</div><div class="value" id="dataCost">€ 0,00</div></div>
+          <div class="row"><div class="label">Energie (incl. btw)</div><div class="value" id="energyIncl">€ 0,00</div></div>
         </div>
+        <div class="total">
+          <div class="row"><div class="label">Totaal deze maand</div><div class="value" id="total">€ 0,00</div></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const NET_PER_KWH = 0.064385
